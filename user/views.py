@@ -1,6 +1,6 @@
 import json
 from django.db import connection
-from django.http import JsonResponse
+from .utils import get_response
 
 
 def register_user(request):
@@ -15,24 +15,19 @@ def register_user(request):
                 "INSERT INTO user_user(first_name, last_name, username, password) VALUES (%s, %s, %s, %s)",
                 (first_name, last_name, username, password))
             cursor.execute("select * from user_user WHERE first_name=%s", [first_name])
-            atr_list = ['id', 'first_name', 'last_name', 'username', 'password']
-            rows = cursor.fetchone()
-            response_dict = {}
-            [response_dict.update({atr_list[i]: row}) for i, row in enumerate(rows)]
-            return JsonResponse({"message": "Registered Successfully", "data": response_dict, "status": 202},
-                                status=202)
-    return JsonResponse({"Message": "Method not allowed", "status": 405}, status=405)
+            atr_list = ['id', 'username', 'password', 'first_name', 'last_name']
+            data = {atr_list[i]: row for i, row in enumerate(cursor.fetchone())}
+            return get_response(data=data, status=202)
+    return get_response(status=405)
 
 
 def retrieve_users(request):
     if request.method == "GET":
         cursor = connection.cursor()
         cursor.execute("select * from user_user")
-        rows = cursor.fetchall()
-        columns = [col[0] for col in cursor.description]
-        data = [dict(zip(columns, row)) for row in rows]
-        return JsonResponse({"message": "Data Retrieved", "data": data, "status": 200})
-    return JsonResponse({"Message": "Method not allowed", "status": 405}, status=405)
+        data = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        return get_response(data=data, status=200)
+    return get_response(status=405)
 
 
 def update_user(request):
@@ -48,19 +43,17 @@ def update_user(request):
                 "UPDATE user_user SET first_name=%s, last_name=%s, username=%s, password=%s where id=%s",
                 [first_name, last_name, username, password, user_id])
             cursor.execute("select * from user_user WHERE first_name=%s", [first_name])
-            atr_list = ['id', 'first_name', 'last_name', 'username', 'password']
-            rows = cursor.fetchone()
-            data = {}
-            [data.update({atr_list[i]: row}) for i, row in enumerate(rows)]
-        return JsonResponse({"message": "Updated Successfully", "data": data, "status": 201}, status=201)
-    return JsonResponse({"Message": "Method not allowed", "status": 405}, status=405)
+            atr_list = ['id', 'username', 'password', 'first_name', 'last_name']
+            data = {atr_list[i]: row for i, row in enumerate(cursor.fetchone())}
+            return get_response(data=data, status=201)
+    return get_response(status=405)
 
 
 def delete_user(request):
     data = json.loads(request.body)
-    user_id = data.get("id")
+    user_id = data.get("user_id")
     if request.method == "DELETE":
         with connection.cursor() as cursor:
             cursor.execute("DELETE FROM user_user WHERE id=%s", [user_id])
-        return JsonResponse({"message": "Deleted Successfully", "status": 204})
-    return JsonResponse({"Message": "Method not allowed", "status": 405}, status=405)
+            return get_response(data=data, status=204)
+    return get_response(status=405)
