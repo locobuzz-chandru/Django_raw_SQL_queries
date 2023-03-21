@@ -1,8 +1,6 @@
 import json
 from django.db import connection
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import User
 
 
 def register_user(request):
@@ -23,6 +21,17 @@ def register_user(request):
             [response_dict.update({atr_list[i]: row}) for i, row in enumerate(rows)]
             return JsonResponse({"message": "Registered Successfully", "data": response_dict, "status": 202},
                                 status=202)
+    return JsonResponse({"Message": "Method not allowed", "status": 405}, status=405)
+
+
+def retrieve_users(request):
+    if request.method == "GET":
+        cursor = connection.cursor()
+        cursor.execute("select * from user_user")
+        rows = cursor.fetchall()
+        columns = [col[0] for col in cursor.description]
+        data = [dict(zip(columns, row)) for row in rows]
+        return JsonResponse({"message": "Data Retrieved", "data": data, "status": 200})
     return JsonResponse({"Message": "Method not allowed", "status": 405}, status=405)
 
 
@@ -47,20 +56,11 @@ def update_user(request):
     return JsonResponse({"Message": "Method not allowed", "status": 405}, status=405)
 
 
-def retrieve_users(request):
-    if request.method == "GET":
-        cursor = connection.cursor()
-        cursor.execute("select * from user_user")
-        rows = cursor.fetchall()
-        columns = [col[0] for col in cursor.description]
-        data = [dict(zip(columns, row)) for row in rows]
-        return JsonResponse({"message": "Data Retrieved", "data": data, "status": 200})
-
-
 def delete_user(request):
     data = json.loads(request.body)
     user_id = data.get("id")
     if request.method == "DELETE":
         with connection.cursor() as cursor:
             cursor.execute("DELETE FROM user_user WHERE id=%s", [user_id])
-    return JsonResponse({"message": "Deleted Successfully", "status": 204})
+        return JsonResponse({"message": "Deleted Successfully", "status": 204})
+    return JsonResponse({"Message": "Method not allowed", "status": 405}, status=405)
